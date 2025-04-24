@@ -99,9 +99,26 @@ jobs:
       - name: Deploy on EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@$EC2_IP << 'EOF'
-            cd /home/ec2-user/app
-            docker-compose down
-            docker-compose up -d --build
+            # Install Docker
+            sudo yum update -y
+            sudo yum install -y docker
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            sudo usermod -aG docker ec2-user
+
+            # Install Docker Compose v2 (as a Docker plugin)
+            DOCKER_CONFIG=${HOME}/.docker
+            mkdir -p $DOCKER_CONFIG/cli-plugins
+            curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+              -o $DOCKER_CONFIG/cli-plugins/docker-compose
+            chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+
+            # Ensure new docker group permissions are applied
+            newgrp docker << EONG
+              cd /home/ec2-user/app
+              docker compose down
+              docker compose up -d --build
+            EONG
           EOF
 
       - name: Rollback Terraform Deployment in case of failure
