@@ -101,21 +101,26 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@$EC2_IP << 'EOF'
             # Install Docker
             sudo yum update -y
+            sudo amazon-linux-extras enable docker
             sudo yum install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
 
-            # Install Docker Compose v2 (plugin style)
-            mkdir -p ~/.docker/cli-plugins
-            curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
-              -o ~/.docker/cli-plugins/docker-compose
-            chmod +x ~/.docker/cli-plugins/docker-compose
+            # Install Docker Compose v2 (system-wide plugin)
+            sudo mkdir -p /usr/local/lib/docker/cli-plugins
+            sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+              -o /usr/local/lib/docker/cli-plugins/docker-compose
+            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-            # Navigate and run Docker commands with sudo
+            # Test installation
+            docker compose version
+
+            # Run your app
             cd /home/ec2-user/app
             sudo docker compose down || true
             sudo docker compose up -d --build
           EOF
+      
 
       - name: Rollback Terraform Deployment in case of failure
         if: failure()
