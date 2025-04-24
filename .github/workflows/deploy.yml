@@ -29,12 +29,14 @@ jobs:
         run: terraform plan -out=tfplan
         working-directory: infra
         env:
+          TF_VAR_key_name: ${{ secrets.TF_VAR_key_name }}
           TF_LOG: DEBUG
 
       - name: Save Terraform Plan output
         run: terraform show -json tfplan > tfplan.json
         working-directory: infra
         env:
+          TF_VAR_key_name: ${{ secrets.TF_VAR_key_name }}
           TF_LOG: DEBUG
 
       - name: Upload Terraform Plan output as artifact
