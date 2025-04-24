@@ -8,5 +8,6 @@ terraform {
     key            = "env/app/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
+    dynamodb_table = "sipstr-terraform-locks"  # <-- this requires DynamoDB permissions
   }
 }
