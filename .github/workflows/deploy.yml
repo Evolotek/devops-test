@@ -34,7 +34,7 @@ jobs:
         working-directory: infra
 
       - name: Upload Terraform Plan output as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: tfplan
           path: infra/tfplan.json
