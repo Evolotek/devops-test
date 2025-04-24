@@ -24,8 +24,30 @@ jobs:
         run: terraform validate
         working-directory: infra
 
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -out=tfplan
+        working-directory: infra
+
+      - name: Save Terraform Plan output
+        run: terraform show -json tfplan > tfplan.json
+        working-directory: infra
+
+      - name: Upload Terraform Plan output as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: tfplan
+          path: infra/tfplan.json
+
+      - name: Check for Terraform Errors
+        run: |
+          if grep -q "InvalidParameterValue" infra/tfplan.json; then
+            echo "Error detected in Terraform plan output. Please check the tfplan.json file."
+            exit 1
+          fi
+
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve tfplan
         working-directory: infra
         timeout-minutes: 10
         env:
@@ -48,3 +70,16 @@ jobs:
             docker-compose down
             docker-compose up -d --build
           EOF
+
+      - name: Rollback Terraform Deployment in case of failure
+        if: failure()  # This will execute if the previous steps failed
+        run: |
+          echo "Rolling back the Terraform deployment..."
+          terraform destroy -auto-approve
+        working-directory: infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_key_name: ${{ secrets.TF_VAR_key_name }}
+          TF_LOG: DEBUG
